@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from core.environment import ResourceAllocatorEnv
+import os
 import asyncio
 
 app = FastAPI(title="RL Resource Allocator API")
@@ -14,6 +16,11 @@ app.add_middleware(
 )
 
 env = ResourceAllocatorEnv()
+
+@app.get("/")
+@app.get("/index.html")
+def root():
+    return FileResponse("static/index.html")
 
 @app.get("/health")
 def health():

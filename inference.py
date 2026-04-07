@@ -1,6 +1,7 @@
 import asyncio
 import os
 import textwrap
+import json
 from typing import List, Optional
 from openai import OpenAI
 from core.environment import ResourceAllocatorEnv
@@ -8,8 +9,7 @@ from core.environment import ResourceAllocatorEnv
 # Environment variables as requested by OpenEnv Round 1
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-# Using HF_TOKEN or OPENAI_API_KEY as the api_key.
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY", "")
+API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or ""
 
 TASKS = ["easy", "medium", "hard"]
 BENCHMARK = "rl-resource-allocator-v1"
@@ -31,6 +31,35 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]):
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
+async def get_llm_action(client: OpenAI, obs_data: dict) -> int:
+    """Uses LLM to decide the action (0=decrease, 1=stay, 2=increase)."""
+    system_prompt = textwrap.dedent("""
+        You are an RL Resource Allocator AI. 
+        You manage CPU shares for Docker containers.
+        Possible actions: 0 (decrease), 1 (stay), 2 (increase).
+        Respond with ONLY the integer 0, 1, or 2.
+    """).strip()
+    
+    user_prompt = f"Current container observations: {obs_data}. Choose action:"
+    
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=5,
+            temperature=0.0
+        )
+        text = (completion.choices[0].message.content or "").strip()
+        # extract integer
+        if "0" in text: return 0
+        if "2" in text: return 2
+        return 1
+    except Exception:
+        return 1
+
 async def run_task(client: OpenAI, env_instance: ResourceAllocatorEnv, task_id: str):
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
     
@@ -46,21 +75,16 @@ async def run_task(client: OpenAI, env_instance: ResourceAllocatorEnv, task_id: 
             if obs_wrapper.done:
                 break
             
-            # Simplified LLM decision for baseline or internal direct agent
-            # Actually, standard says: uses OpenAI API client.
-            # But the agent is internal SB3 model.
-            # Usually, OpenEnv baseline uses the LLM to choose actions.
-            # Let's use a dummy message for the "OpenAI Client" part as per sample, 
-            # or just call it directly if the prompt implies the agent IS the baseline.
-            action_obj = env_instance.agent.predict(obs_wrapper.observation)
+            # USE LLM TO DECIDE ACTION
+            action_int = await get_llm_action(client, obs_wrapper.observation.tolist())
             
-            obs_wrapper = await env_instance.step(action_obj)
+            obs_wrapper = await env_instance.step(action_int)
             
             reward = obs_wrapper.reward or 0.0
             rewards.append(reward)
             steps_taken = step
             
-            log_step(step=step, action=str(action_obj.container_id),
+            log_step(step=step, action=str(action_int),
                     reward=reward, done=obs_wrapper.done, error=None)
             
             if obs_wrapper.done:

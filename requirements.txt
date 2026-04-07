@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 pydantic
-openenv-core
+openenv-core>=0.2.0
 openai
 streamlit
 plotly

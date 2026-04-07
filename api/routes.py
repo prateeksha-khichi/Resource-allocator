@@ -20,8 +20,8 @@ def health():
     return {"status": "ok"}
 
 @app.post("/reset")
-async def reset():
-    obs = await env.reset()
+async def reset(task_id: str = "easy"):
+    obs = await env.reset(task_id=task_id)
     return {"status": "reset_ok", "obs": obs.observation.tolist() if hasattr(obs.observation, "tolist") else obs.observation}
 
 @app.post("/step")

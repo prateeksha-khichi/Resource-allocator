@@ -6,3 +6,8 @@ inference_output.txt
 inference_output_utf8.txt
 .env
 .DS_Store
+deploy.py
+deploy_out*.txt
+validate*.txt
+push_*.txt
+uv.lock

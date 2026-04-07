@@ -25,6 +25,7 @@ class ResourceAllocatorEnv(gym.Env):
         # Action space: Discrete action per container, e.g. increase/decrease shares
         # For simplicity, 3 actions: 0=decrease, 1=stay, 2=increase
         self.action_space = spaces.Discrete(3)
+        self.current_task_id = "easy"
         
         self.history = []
         self.episode_step = 0
@@ -49,6 +50,15 @@ class ResourceAllocatorEnv(gym.Env):
             t = time.time()
             sim_cpu, sim_mem = self.simulator.ml_training_pattern(t)
             
+            # Task specific logic
+            priority = 3
+            if self.current_task_id == "medium":
+                priority = 1 if i % 2 == 0 else 4
+            elif self.current_task_id == "hard":
+                # simulate spikes
+                if np.random.random() < 0.1:
+                    sim_cpu *= 1.5
+            
             c = ContainerState(
                 container_id=m["container_id"],
                 name=m["name"],
@@ -56,7 +66,7 @@ class ResourceAllocatorEnv(gym.Env):
                 memory_percent=m["memory_percent"] if m["memory_percent"] else sim_mem*100,
                 cpu_trend=0.0,
                 memory_trend=0.0,
-                priority=1 if i==0 else 3,
+                priority=priority,
                 workload_type="web",
                 current_cpu_shares=1024,
                 current_memory_limit_mb=512.0,
@@ -93,7 +103,8 @@ class ResourceAllocatorEnv(gym.Env):
             arr.extend([0, 0, 0, 0, 0])
         return np.array(arr, dtype=np.float32)
 
-    async def reset(self, seed=None):
+    async def reset(self, task_id="easy", seed=None):
+        self.current_task_id = task_id
         self.episode_step = 0
         self.total_reward = 0.0
         self.history = []

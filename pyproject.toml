@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rl-resource-allocator"
+version = "1.0.0"
+description = "PPO-based RL agent that reads real CPU/memory metrics and integrates with real Docker usage in real time."
+authors = [
+    { name = "Antigravity User" }
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai",
+    "streamlit",
+    "plotly",
+    "pandas",
+    "stable-baselines3",
+    "torch",
+    "gymnasium",
+    "psutil",
+    "docker",
+    "sqlalchemy",
+    "python-dotenv",
+    "numpy",
+    "scipy",
+    "requests",
+    "psycopg2-binary",
+    "openenv-core>=0.2.0"
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[project.entry-points."openenv.environments"]
+rl-resource-allocator = "core.environment:ResourceAllocatorEnv"

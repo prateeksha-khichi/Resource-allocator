@@ -1,0 +1,29 @@
+name: rl-resource-allocator
+version: "1.0.0"
+description: >
+  PPO-based RL agent that reads real CPU/memory 
+  metrics and integrates with real Docker usage
+  in real time. Reduces infrastructure cost while
+  maintaining zero downtime.
+author: "Antigravity User"
+tasks:
+  - id: easy
+    name: "Single Container Stability"
+    difficulty: easy
+    max_steps: 100
+    success_threshold: 0.7
+  - id: medium
+    name: "Multi-Container Priority"
+    difficulty: medium
+    max_steps: 100
+    success_threshold: 0.6
+  - id: hard
+    name: "Spike Prediction and Recovery"
+    difficulty: hard
+    max_steps: 100
+    success_threshold: 0.5
+action_space: ResourceAction
+observation_space: ResourceObservation
+reward_range: [0.0, 1.0]
+tags: [infrastructure, docker, resource-management, 
+       real-world, ppo, devops]
